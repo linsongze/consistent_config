@@ -29,10 +29,9 @@ public class ZkConfig implements Config {
     private CuratorFramework client = null;
     private ReentrantReadWriteLock rwlock = new ReentrantReadWriteLock();
 
-
-    public ZkConfig(String connectStr) {
+    public ZkConfig(String connectStr,String baseDir){
         client = CuratorFrameworkFactory.builder().connectString(connectStr)
-                .namespace("CConfig").retryPolicy(new RetryNTimes(Integer.MAX_VALUE, 1000))
+                .namespace(baseDir).retryPolicy(new RetryNTimes(Integer.MAX_VALUE, 1000))
                 .connectionTimeoutMs(5000).build();
         // 启动 上面的namespace会作为一个最根的节点在使用时自动创建
         client.start();
@@ -45,6 +44,9 @@ public class ZkConfig implements Config {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    public ZkConfig(String connectStr) {
+        this(connectStr,"CCconfig");
     }
 
     private void initWatch() throws Exception {
