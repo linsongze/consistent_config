@@ -31,6 +31,7 @@ public class ZkConfig implements Config {
     private boolean readonly;
 
     public ZkConfig(String connectStr,String baseDir,boolean readonly){
+        this.readonly = readonly;
         client = CuratorFrameworkFactory.builder().connectString(connectStr)
                 .namespace(baseDir).retryPolicy(new RetryNTimes(Integer.MAX_VALUE, 1000))
                 .connectionTimeoutMs(5000).build();
