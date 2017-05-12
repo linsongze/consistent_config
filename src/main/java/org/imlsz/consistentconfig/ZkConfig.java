@@ -28,8 +28,9 @@ public class ZkConfig implements Config {
     private InterProcessReadWriteLock nameslock;
     private CuratorFramework client = null;
     private ReentrantReadWriteLock rwlock = new ReentrantReadWriteLock();
+    private boolean readonly;
 
-    public ZkConfig(String connectStr,String baseDir){
+    public ZkConfig(String connectStr,String baseDir,boolean readonly){
         client = CuratorFrameworkFactory.builder().connectString(connectStr)
                 .namespace(baseDir).retryPolicy(new RetryNTimes(Integer.MAX_VALUE, 1000))
                 .connectionTimeoutMs(5000).build();
@@ -46,7 +47,7 @@ public class ZkConfig implements Config {
         }
     }
     public ZkConfig(String connectStr) {
-        this(connectStr,"CCconfig");
+        this(connectStr,"CCconfig",false);
     }
 
     private void initWatch() throws Exception {
@@ -122,6 +123,9 @@ public class ZkConfig implements Config {
     }
 
     public void save(String key, String val) throws Exception {
+        if(readonly){
+            throw new UnsupportedOperationException("the config client is readonly!");
+        }
         try {
             rwlock.writeLock().lock();
             nameslock.writeLock().acquire();
