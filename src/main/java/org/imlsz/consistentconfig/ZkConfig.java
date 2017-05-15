@@ -9,6 +9,8 @@ import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
+import org.imlsz.consistentconfig.lock.DistributedRwLock;
+import org.imlsz.consistentconfig.lock.ZkDistributedRwLock;
 import org.imlsz.consistentconfig.utils.SerializableUtils;
 
 import java.util.HashMap;
@@ -25,7 +27,7 @@ public class ZkConfig implements Config {
     private static final String STORE_PATH = "/Zkx";
     private static final String STORE_NAMES_PATH = "/ZkConfigList";
     private static final String STORE_NAMES_Lock_PATH = "/ZkConfigListLock";
-    private InterProcessReadWriteLock nameslock;
+    private DistributedRwLock nameslock;
     private CuratorFramework client = null;
     private ReentrantReadWriteLock rwlock = new ReentrantReadWriteLock();
     private boolean readonly;
@@ -35,14 +37,10 @@ public class ZkConfig implements Config {
         client = CuratorFrameworkFactory.builder().connectString(connectStr)
                 .namespace(baseDir).retryPolicy(new RetryNTimes(Integer.MAX_VALUE, 1000))
                 .connectionTimeoutMs(5000).build();
-        // 启动 上面的namespace会作为一个最根的节点在使用时自动创建
         client.start();
         try {
             client.blockUntilConnected();
-            nameslock = new InterProcessReadWriteLock(client, STORE_NAMES_Lock_PATH);
-            initWatch();
-            init();
-
+            nameslock = new ZkDistributedRwLock( new InterProcessReadWriteLock(client, STORE_NAMES_Lock_PATH));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -51,7 +49,17 @@ public class ZkConfig implements Config {
         this(connectStr,"CCconfig",false);
     }
 
-    private void initWatch() throws Exception {
+    public ZkConfig setNamesLock(DistributedRwLock distributedRwLock){
+        this.nameslock = distributedRwLock;
+        return this;
+    }
+    public ZkConfig init() throws Exception {
+        _initWatch();
+        _init();
+        return this;
+    }
+
+    private void _initWatch() throws Exception {
         PathChildrenCache watcher = new PathChildrenCache(
                 client,
                 STORE_PATH,
@@ -87,7 +95,7 @@ public class ZkConfig implements Config {
         watcher.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
 
     }
-    private void init() throws Exception {
+    private void _init() throws Exception {
         try {
             rwlock.readLock().lock();
             nameslock.readLock().acquire();

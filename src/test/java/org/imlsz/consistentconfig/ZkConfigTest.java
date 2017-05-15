@@ -8,8 +8,8 @@ import org.junit.Test;
 public class ZkConfigTest {
     @Test
     public void test() throws Exception {
-        ZkConfig config = new ZkConfig("localhost:2181");
-        ZkConfig config2 = new ZkConfig("localhost:2181");
+        ZkConfig config = new ZkConfig("localhost:2181").init();
+        ZkConfig config2 = new ZkConfig("localhost:2181").init();
 
         new Thread(()->{
             for (int i = 0;i<100;i++){
